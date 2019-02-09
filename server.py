@@ -11,6 +11,9 @@ from diffee_hellman import *
 from _thread import *
 import threading
 
+def readfile():
+    return f.read(1024)
+
 print_lock = threading.Lock()
 #Password file declaration
 password_file = {}
@@ -18,13 +21,13 @@ password_file = {}
 # create a socket object
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# get local machine name
-host = socket.gethostname()
-
+#Assign port number to server
 port = 9999
 
 # bind to the port
-serversocket.bind((host, port))
+#Give host as empty string so that server can listen
+#to requests coming from other networks
+serversocket.bind(('', port))
 
 # queue up to 5 requests
 serversocket.listen(5)
@@ -67,56 +70,143 @@ while True:
 
 	while True:
 
-		   print("------Waiting for credentials-----")
+		print("------Waiting for credentials-----")
 
-		   data = clientsocket.recv(1024)
+		data = clientsocket.recv(1024)
 
-		   enc_credentials = pickle.loads(data)
+		enc_credentials = pickle.loads(data)
 
-		   #Decryption of cipher plain_text
-		   dec_credentials = []
+		#Decryption of cipher plain_text
+		dec_credentials = []
 
-		   for item in enc_credentials:
-		   		dec_credentials.append(ceaser_cipher_decrypt(str(item), KB_A))
+		for item in enc_credentials:
 
-		   print("Decrypted credentials received from client : ",dec_credentials)
+		   	dec_credentials.append(ceaser_cipher_decrypt(str(item), KB_A))
 
-		   if len(dec_credentials) == 3:
+		print("Decrypted credentials received from client : ",dec_credentials)
 
-			   Id = dec_credentials[0]
-			   Pw = dec_credentials[1]
-			   Q_A = dec_credentials[2]
+		logged_in = False
 
-			   #-------------INSERTING DATA INTO PASSWORD FILE-----------
+		if len(dec_credentials) == 3:
 
-			   # checking if id is present in file
+		   Id = dec_credentials[0]
 
-			   if Id in password_file.keys() :
-				   status_msg = "UN-SUCCESSFUL"
-				   clientsocket.send(status_msg.encode('ascii'))
+		   Pw = dec_credentials[1]
 
-			   else:
-				   salt = random.randint(1,n)
-				   concatination = str(Pw)+str(salt)+str(Q_A)
-				   hash_value = hashlib.sha1(concatination.encode()).hexdigest()
-				   password_file[Id] = {}
-				   password_file[Id]['salt'] = salt
-				   password_file[Id]['hashed_password'] = hash_value
-				   password_file[Id]['prime'] = Q_A
-				   status_msg = "SUCCESSFUL"
-				   clientsocket.send(status_msg.encode('ascii'))
+		   Q_A = dec_credentials[2]
 
-			   recv_conn = clientsocket.recv(1024)
-			   conn = recv_conn.decode('utf8')
-			   print("status : ",conn)
-			   if conn == 'y':
-				   continue
-			   else:
-				   print_lock.release()
-				   print("Lock released")
-				   break
+		   #-------------INSERTING DATA INTO PASSWORD FILE-----------
+
+		   # checking if id is present in file
+
+		   if Id in password_file.keys() :
+
+			   status_msg = "UN-SUCCESSFUL"
+
+			   clientsocket.send(status_msg.encode('ascii'))
 
 		   else:
-			   print("still got to build")
+
+			   salt = random.randint(1,n)
+
+			   concatination = str(Pw)+str(salt)+str(Q_A)
+
+			   hash_value = hashlib.sha1(concatination.encode()).hexdigest()
+
+			   password_file[Id] = {}
+
+			   password_file[Id]['salt'] = salt
+
+			   password_file[Id]['hashed_password'] = hash_value
+
+			   password_file[Id]['prime'] = Q_A
+
+			   status_msg = "SUCCESSFUL"
+
+			   clientsocket.send(status_msg.encode('ascii'))
+
+		else:
+
+		   Id = dec_credentials[0]
+
+		   Pw = dec_credentials[1]
+
+		   if Id in password_file.keys():
+
+		    	salt_A = password_file[Id]['salt']
+
+		    	Q_A = password_file[Id]['prime']
+
+		    	concatination = str(Pw)+str(salt_A)+str(Q_A)
+
+		    	computed_hash = hashlib.sha1(concatination.encode()).hexdigest()
+
+		    	if computed_hash == password_file[Id]['hashed_password']:
+
+		    		status_msg = "SUCCESSFUL"
+
+		    		clientsocket.send(status_msg.encode('ascii'))
+
+		    		data = clientsocket.recv(1024)
+
+		    		file_contents = pickle.loads(data)
+
+		    		Id = file_contents[0]
+
+		    		file = file_contents[1]
+
+		    		file_name = './Files/'+file
+
+		    		try:
+
+		    			f = open(file_name,'r')
+
+		    			for piece in iter(lambda: f.read(1024),''):
+
+		    				clientsocket.send(piece.encode('ascii'))
+
+		    				service_done = [file, "SUCCESSFUL"]
+
+		    				data = pickle.dumps(service_done)
+
+		    				clientsocket.send(data)
+
+		    			f.close()
+
+		    			break	 
+
+		    		except FileNotFoundError:
+
+		    			clientsocket.send('Not-found'.encode('ascii'))
+
+		    			reply = [file,"UN-SUCCESSFUL"]
+
+		    			data = pickle.dumps(reply)
+
+		    			clientsocket.send(data)
+
+		    	else:
+
+		    		status_msg = "UN-SUCCESSFUL"
+
+		    		clientsocket.send(status_msg.encode('ascii'))
+
+		recv_conn = clientsocket.recv(1024)
+
+		conn = recv_conn.decode('utf8')
+
+		print("status : ",conn)
+
+		if conn == 'y':
+
+			continue
+
+		else:
+
+			print_lock.release()
+
+			print("clinet "+str(addr)+" released")
+
+			break
 
 clientsocket.close()
