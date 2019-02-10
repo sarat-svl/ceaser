@@ -191,6 +191,8 @@ while True:
 
 		    		except FileNotFoundError:
 
+		    			print("File not found")
+
 		    			clientsocket.send('Not found'.encode('ascii'))
 
 		    			reply = [file,"UNSUCCESSFUL"]
@@ -199,12 +201,11 @@ while True:
 
 		    			for item in reply:
 
-		    				encrypted_reply = ceaser_cipher_encrypt(encrypted_reply, KB_A)
+		    				encrypted_reply.append(ceaser_cipher_encrypt(item, KB_A))
 
 		    			data = pickle.dumps(encrypted_reply)
 
 		    			clientsocket.send(data)
-
 
 		    	else:
 

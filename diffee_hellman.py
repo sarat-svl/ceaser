@@ -166,8 +166,7 @@ def ceaser_cipher_decrypt(cipher_text, key):
     return plain_text
 
 
-def readfile():
-    return f.read(1024)
+
 
 
 #------------FOR TESTING PURPOSE-------------
