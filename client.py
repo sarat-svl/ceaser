@@ -138,6 +138,8 @@ def login():
 
     print("Encrypted credentials have been sent to server")
 
+    #Receive status message from server
+
     encrypted_status_msg = s.recv(1024)
 
     status_msg = encrypted_status_msg.decode('ascii')
@@ -148,19 +150,29 @@ def login():
     
     print(status_msg)
 
+    print("------------------------------------")
+
+    #IF the status is successful, client is given access to give file name
+
     if(status_msg == "SUCCESSFUL"):
 
         file_name = input("Enter file name : ")
 
+    # Sending service request(ID, FILE_NAME) to server
+
         file_contents = [ID, file_name]
 
         encrypted_file_contents = []
+
+    #Encrypting the service request message with shared key
 
         for item in file_contents:
 
             encrypted_file_contents.append(ceaser_cipher_encrypt(str(item), KA_B))
 
         data = pickle.dumps(encrypted_file_contents)
+
+    #Service request is sent to server
 
         s.send(data)
 
@@ -170,11 +182,17 @@ def login():
 
         while(1):
 
+            #Receiving encrypted file content from server
+
             recv_text = s.recv(1024)
 
             encrypted_file_data = recv_text.decode('utf8')
 
+            #Decrypting the file content
+
             file_data = ceaser_cipher_decrypt(encrypted_file_data, KA_B) 
+
+            # Receiving encrypted service done message from server
 
             recv_data = s.recv(1024)
 
@@ -184,11 +202,16 @@ def login():
 
                 recv_service_done = []
 
+                #Decrypting the service_done message
+
                 for item in encrypted_recv_service_done:
 
                     recv_service_done.append(ceaser_cipher_decrypt(str(item), KA_B))
 
                 print("< File - Status > ",recv_service_done[0],recv_service_done[1])
+
+                # If the service_done message gives "SUCCESSFUL" then client creates an empty empty file if not exitst
+                # with his ip address and append the contents of received file in it. 
 
                 if recv_service_done[1] == "SUCCESSFUL":
                     
@@ -198,6 +221,8 @@ def login():
                     
                     new_file.close()
 
+                #If the service_done message gives "UNSUCCESSFUL" then return
+
                 elif recv_service_done[1] == "UNSUCCESSFUL":
 
                     break
@@ -205,6 +230,9 @@ def login():
             except EOFError:
 
                 break
+
+
+#Menu driven through which client selects to perfor either login or authentication procedure
 
 print(" 1. Login create ")
 
@@ -220,6 +248,9 @@ while True:
     else:
 
         login()
+
+# After finishing either login or authentication, the client is requested to
+#continue to use services of server or exit
 
     conn = input("Continue to use server (y or n) : ")
 

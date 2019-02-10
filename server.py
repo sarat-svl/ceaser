@@ -14,6 +14,7 @@ import threading
 def readfile():
     return f.read(1024)
 
+#Declare lock 
 print_lock = threading.Lock()
 #Password file declaration
 password_file = {}
@@ -37,6 +38,8 @@ print("Socket is listening........")
 while True:
 
 	clientsocket,addr = serversocket.accept()
+
+	#Assign lock to connected client
 
 	print_lock.acquire()
 
