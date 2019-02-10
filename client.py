@@ -96,10 +96,14 @@ def login_create():
 
     print("Encrypted credentials have been sent to server : ",enc_credentials)
 
-    status_msg = s.recv(1024)
+    encrypted_status_msg = s.recv(1024)
+
+    status_msg = encrypted_status_msg.decode('ascii')
+
+    status_msg = ceaser_cipher_decrypt(status_msg, KA_B)
 
     print("---------------STATUS---------------")
-    print(status_msg.decode('ascii'))
+    print(status_msg)
 
 #----------- LOGIN PROCESS------------------
 
@@ -134,18 +138,29 @@ def login():
 
     print("Encrypted credentials have been sent to server")
 
-    status_msg = s.recv(1024)
+    encrypted_status_msg = s.recv(1024)
+
+    status_msg = encrypted_status_msg.decode('ascii')
+
+    status_msg = ceaser_cipher_decrypt(status_msg, KA_B)
 
     print("---------------STATUS---------------")
-    print(status_msg.decode('ascii'))
+    
+    print(status_msg)
 
-    if(status_msg.decode('ascii') == "SUCCESSFUL"):
+    if(status_msg == "SUCCESSFUL"):
 
         file_name = input("Enter file name : ")
 
         file_contents = [ID, file_name]
 
-        data = pickle.dumps(file_contents)
+        encrypted_file_contents = []
+
+        for item in file_contents:
+
+            encrypted_file_contents.append(ceaser_cipher_encrypt(str(item), KA_B))
+
+        data = pickle.dumps(encrypted_file_contents)
 
         s.send(data)
 
@@ -155,13 +170,21 @@ def login():
 
             recv_text = s.recv(1024)
 
-            file_data = recv_text.decode('ascii') 
+            file_data = recv_text.decode('ascii')
+
+            file_data = ceaser_cipher_decrypt(file_data, KA_B) 
 
             recv_data = s.recv(1024)
 
             try:
 
-                recv_service_done = pickle.loads(recv_data)
+                encrypted_recv_service_done = pickle.loads(recv_data)
+
+                recv_service_done = []
+
+                for item in encrypted_recv_service_done:
+
+                    recv_service_done.append(ceaser_cipher_decrypt(str(item), KA_B))
 
                 print("< File - Status > ",recv_service_done[0],recv_service_done[1])
 
@@ -174,6 +197,7 @@ def login():
                     new_file.close()
 
                 else:
+                    
                     break
 
             except EOFError:

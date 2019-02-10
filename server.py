@@ -89,11 +89,11 @@ while True:
 
 		if len(dec_credentials) == 3:
 
-		   Id = dec_credentials[0]
+		   Id = str(dec_credentials[0])
 
-		   Pw = dec_credentials[1]
+		   Pw = str(dec_credentials[1])
 
-		   Q_A = dec_credentials[2]
+		   Q_A = str(dec_credentials[2])
 
 		   #-------------INSERTING DATA INTO PASSWORD FILE-----------
 
@@ -101,15 +101,15 @@ while True:
 
 		   if Id in password_file.keys() :
 
-			   status_msg = "UN-SUCCESSFUL"
+			   status_msg = ceaser_cipher_encrypt("UNSUCCESSFUL", KB_A)
 
 			   clientsocket.send(status_msg.encode('ascii'))
 
 		   else:
 
-			   salt = random.randint(1,n)
+			   salt = str(random.randint(1,n))
 
-			   concatination = str(Pw)+str(salt)+str(Q_A)
+			   concatination = Pw+salt+Q_A
 
 			   hash_value = hashlib.sha1(concatination.encode()).hexdigest()
 
@@ -121,15 +121,15 @@ while True:
 
 			   password_file[Id]['prime'] = Q_A
 
-			   status_msg = "SUCCESSFUL"
+			   status_msg = ceaser_cipher_encrypt("SUCCESSFUL",KB_A)
 
 			   clientsocket.send(status_msg.encode('ascii'))
 
 		else:
 
-		   Id = dec_credentials[0]
+		   Id = str(dec_credentials[0])
 
-		   Pw = dec_credentials[1]
+		   Pw = str(dec_credentials[1])
 
 		   if Id in password_file.keys():
 
@@ -137,19 +137,25 @@ while True:
 
 		    	Q_A = password_file[Id]['prime']
 
-		    	concatination = str(Pw)+str(salt_A)+str(Q_A)
+		    	concatination = Pw+salt_A+Q_A
 
 		    	computed_hash = hashlib.sha1(concatination.encode()).hexdigest()
 
 		    	if computed_hash == password_file[Id]['hashed_password']:
 
-		    		status_msg = "SUCCESSFUL"
+		    		status_msg = ceaser_cipher_encrypt("SUCCESSFUL",KB_A)
 
 		    		clientsocket.send(status_msg.encode('ascii'))
 
 		    		data = clientsocket.recv(1024)
 
-		    		file_contents = pickle.loads(data)
+		    		encrypted_file_contents = pickle.loads(data)
+
+		    		file_contents = []
+
+		    		for item in encrypted_file_contents:
+
+		    			file_contents.append(ceaser_cipher_decrypt(str(item), KB_A))
 
 		    		Id = file_contents[0]
 
@@ -163,11 +169,19 @@ while True:
 
 		    			for piece in iter(lambda: f.read(1024),''):
 
-		    				clientsocket.send(piece.encode('ascii'))
+		    				encrypted_piece = ceaser_cipher_encrypt(str(piece),KB_A)
+
+		    				clientsocket.send(encrypted_piece.encode('ascii'))
 
 		    				service_done = [file, "SUCCESSFUL"]
 
-		    				data = pickle.dumps(service_done)
+		    				encrypted_service_done = []
+
+		    				for item in service_done:
+
+		    					encrypted_service_done.append(ceaser_cipher_encrypt(item, KB_A))
+
+		    				data = pickle.dumps(encrypted_service_done)
 
 		    				clientsocket.send(data)
 
@@ -177,17 +191,24 @@ while True:
 
 		    		except FileNotFoundError:
 
-		    			clientsocket.send('Not-found'.encode('ascii'))
+		    			clientsocket.send('Not found'.encode('ascii'))
 
-		    			reply = [file,"UN-SUCCESSFUL"]
+		    			reply = [file,"UNSUCCESSFUL"]
 
-		    			data = pickle.dumps(reply)
+		    			encrypted_reply = []
+
+		    			for item in reply:
+
+		    				encrypted_reply = ceaser_cipher_encrypt(encrypted_reply, KB_A)
+
+		    			data = pickle.dumps(encrypted_reply)
 
 		    			clientsocket.send(data)
 
+
 		    	else:
 
-		    		status_msg = "UN-SUCCESSFUL"
+		    		status_msg = ceaser_cipher_encrypt("UNSUCCESSFUL", KB_A)
 
 		    		clientsocket.send(status_msg.encode('ascii'))
 
