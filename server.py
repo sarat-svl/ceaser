@@ -163,50 +163,56 @@ while True:
 
 		    		file_name = './Files/'+file
 
-		    		try:
+		    		while True:
+			    		try:
 
-		    			f = open(file_name,'r')
+			    			f = open(file_name,'r')
 
-		    			for piece in iter(lambda: f.read(1024),''):
+			    			for piece in iter(lambda: f.read(1024),''):
 
-		    				encrypted_piece = ceaser_cipher_encrypt(str(piece),KB_A)
+			    				print("Data chunk sent to client : ",piece)
 
-		    				clientsocket.send(encrypted_piece.encode('ascii'))
+			    				encrypted_piece = ceaser_cipher_encrypt(str(piece),KB_A)
 
-		    				service_done = [file, "SUCCESSFUL"]
+			    				clientsocket.send(bytes(encrypted_piece,'utf8'))
 
-		    				encrypted_service_done = []
+			    				service_done = [file, "SUCCESSFUL"]
 
-		    				for item in service_done:
+			    				encrypted_service_done = []
 
-		    					encrypted_service_done.append(ceaser_cipher_encrypt(item, KB_A))
+			    				for item in service_done:
 
-		    				data = pickle.dumps(encrypted_service_done)
+			    					encrypted_service_done.append(ceaser_cipher_encrypt(item, KB_A))
 
-		    				clientsocket.send(data)
+			    				data = pickle.dumps(encrypted_service_done)
 
-		    			f.close()
+			    				clientsocket.send(data)
 
-		    			break	 
+			    			f.close()
 
-		    		except FileNotFoundError:
+			    			print("----------File transfer is done----------")
 
-		    			print("File not found")
+			    			break
 
-		    			clientsocket.send('Not found'.encode('ascii'))
+			    		except FileNotFoundError:
 
-		    			reply = [file,"UNSUCCESSFUL"]
+			    			print("File not found")
 
-		    			encrypted_reply = []
+			    			clientsocket.send('Not found'.encode('ascii'))
 
-		    			for item in reply:
+			    			reply = [file,"UNSUCCESSFUL"]
 
-		    				encrypted_reply.append(ceaser_cipher_encrypt(item, KB_A))
+			    			encrypted_reply = []
 
-		    			data = pickle.dumps(encrypted_reply)
+			    			for item in reply:
 
-		    			clientsocket.send(data)
+			    				encrypted_reply.append(ceaser_cipher_encrypt(item, KB_A))
 
+			    			data = pickle.dumps(encrypted_reply)
+
+			    			clientsocket.send(data)
+
+			    			break
 		    	else:
 
 		    		status_msg = ceaser_cipher_encrypt("UNSUCCESSFUL", KB_A)

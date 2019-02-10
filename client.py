@@ -164,15 +164,17 @@ def login():
 
         s.send(data)
 
+        encrypted_file_data = ''
+
         file_data = ''
 
         while(1):
 
             recv_text = s.recv(1024)
 
-            file_data = recv_text.decode('ascii')
+            encrypted_file_data = recv_text.decode('utf8')
 
-            file_data = ceaser_cipher_decrypt(file_data, KA_B) 
+            file_data = ceaser_cipher_decrypt(encrypted_file_data, KA_B) 
 
             recv_data = s.recv(1024)
 
@@ -190,21 +192,19 @@ def login():
 
                 if recv_service_done[1] == "SUCCESSFUL":
                     
-                    new_file = open('client-'+ str(host)+'.txt','w')
+                    new_file = open('client-'+ str(host)+'.txt','a+')
                     
                     new_file.write(file_data)
                     
                     new_file.close()
 
-                else:
-                    
+                elif recv_service_done[1] == "UNSUCCESSFUL":
+
                     break
 
             except EOFError:
 
                 break
-
-            
 
 print(" 1. Login create ")
 
