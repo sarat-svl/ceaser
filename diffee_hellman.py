@@ -165,6 +165,11 @@ def ceaser_cipher_decrypt(cipher_text, key):
         plain_text+=decrypt[(encrypt[letter] - key) % 67]
     return plain_text
 
+
+def readfile():
+    return f.read(1024)
+
+
 #------------FOR TESTING PURPOSE-------------
 def Diffie_Hellman_key():
     #Select a random prime number

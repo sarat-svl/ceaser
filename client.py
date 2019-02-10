@@ -1,4 +1,5 @@
 #!/usr/bin/python3           # This is client.py file
+import sys
 import random
 import pickle
 from diffee_hellman import *
@@ -8,8 +9,8 @@ import socket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # get local machine name
-host = socket.gethostname()
-
+#host = sys.argv[0]
+host = '127.0.0.1'
 port = 9999
 
 # connection to hostname on the port.
@@ -131,20 +132,81 @@ def login():
 
     s.send(data)
 
-    print("Encrypted credentials have been sent to server : ",enc_credentials)
+    print("Encrypted credentials have been sent to server")
+
+    status_msg = s.recv(1024)
+
+    print("---------------STATUS---------------")
+    print(status_msg.decode('ascii'))
+
+    if(status_msg.decode('ascii') == "SUCCESSFUL"):
+
+        file_name = input("Enter file name : ")
+
+        file_contents = [ID, file_name]
+
+        data = pickle.dumps(file_contents)
+
+        s.send(data)
+
+        file_data = ''
+
+        while(1):
+
+            recv_text = s.recv(1024)
+
+            file_data = recv_text.decode('ascii') 
+
+            recv_data = s.recv(1024)
+
+            try:
+
+                recv_service_done = pickle.loads(recv_data)
+
+                print("< File - Status > ",recv_service_done[0],recv_service_done[1])
+
+                if recv_service_done[1] == "SUCCESSFUL":
+                    
+                    new_file = open('client-'+ str(host)+'.txt','w')
+                    
+                    new_file.write(file_data)
+                    
+                    new_file.close()
+
+                else:
+                    break
+
+            except EOFError:
+
+                break
+
+            
 
 print(" 1. Login create ")
+
 print(" 2. Login ")
+
 while True:
     option = int(input("Enter choice : "))
+
     if option == 1:
+
         login_create()
+
     else:
+
         login()
+
     conn = input("Continue to use server (y or n) : ")
+
     s.send(conn.encode('utf8').strip())
+
     if conn == 'y':
+
         continue
+
     else:
+
         break
+
 s.close()
