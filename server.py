@@ -100,7 +100,8 @@ while True:
 
 		   #-------------INSERTING DATA INTO PASSWORD FILE-----------
 
-		   # checking if id is present in file
+		   # checking if giiven id already exists send LOGIN_REPLY as UNSUCCESSFUL
+		   #which is encrypted with shared key
 
 		   if Id in password_file.keys() :
 
@@ -108,13 +109,22 @@ while True:
 
 			   clientsocket.send(status_msg.encode('ascii'))
 
+		   # Else generate a random salt and perform sha1 of ( password || salt || prime number) 
+		   # store it and send LOGIN_REPLY 
+
 		   else:
+
+		   	# generating salt
 
 			   salt = str(random.randint(1,n))
 
 			   concatination = Pw+salt+Q_A
 
+			# performing sha1 operation
+
 			   hash_value = hashlib.sha1(concatination.encode()).hexdigest()
+
+			# storing respective values in password file
 
 			   password_file[Id] = {}
 
@@ -124,17 +134,27 @@ while True:
 
 			   password_file[Id]['prime'] = Q_A
 
+			# sending LOGIN_REPLY
+
 			   status_msg = ceaser_cipher_encrypt("SUCCESSFUL",KB_A)
 
 			   clientsocket.send(status_msg.encode('ascii'))
 
+
+		#---------------AUTH REQUEST --------------
+
+		# Here client will send Id and password for authentication	
 		else:
 
+		# Getting ID and password
 		   Id = str(dec_credentials[0])
 
 		   Pw = str(dec_credentials[1])
 
 		   if Id in password_file.keys():
+
+		   	#Get respective salt, prime number of given ID and perform sha1(Pw || salt || prime)
+		   	# and compare it with stored hash. If both matches, send AUTH_REPLY as successful
 
 		    	salt_A = password_file[Id]['salt']
 
@@ -142,13 +162,23 @@ while True:
 
 		    	concatination = Pw+salt_A+Q_A
 
+		    	#perform sha1
+
 		    	computed_hash = hashlib.sha1(concatination.encode()).hexdigest()
 
+		    	#comparing it with stored hash
+
 		    	if computed_hash == password_file[Id]['hashed_password']:
+
+		    		# if equal, send AUTH_REPLY as successful
 
 		    		status_msg = ceaser_cipher_encrypt("SUCCESSFUL",KB_A)
 
 		    		clientsocket.send(status_msg.encode('ascii'))
+
+		    		#-----------SERVICE REQUEST-------------
+
+		    		# Waiting for client to sent file name to be accessed.
 
 		    		data = clientsocket.recv(1024)
 
@@ -156,9 +186,13 @@ while True:
 
 		    		file_contents = []
 
+		    		# Decrypting the encrypted service request contents
+
 		    		for item in encrypted_file_contents:
 
 		    			file_contents.append(ceaser_cipher_decrypt(str(item), KB_A))
+
+		    		#Getting Id and file_name
 
 		    		Id = file_contents[0]
 
@@ -169,15 +203,26 @@ while True:
 		    		while True:
 			    		try:
 
+			    			#Checkign file name if exists
+
 			    			f = open(file_name,'r')
 
 			    			for piece in iter(lambda: f.read(1024),''):
 
+			    				#Sending file contents in chunks of size of 1024B
+
 			    				print("Data chunk sent to client : ",piece)
+
+			    				# Encrypting file contents
 
 			    				encrypted_piece = ceaser_cipher_encrypt(str(piece),KB_A)
 
+			    				# Sending encrypted file content
+
 			    				clientsocket.send(bytes(encrypted_piece,'utf8'))
+
+			    				# sending SERVICE_REPLY message as SUCCESSFUL and 
+			    				# encrypting the contents with shared key
 
 			    				service_done = [file, "SUCCESSFUL"]
 
@@ -189,6 +234,7 @@ while True:
 
 			    				data = pickle.dumps(encrypted_service_done)
 
+			    				# Sending encrypted SERVICE REPLY message
 			    				clientsocket.send(data)
 
 			    			f.close()
@@ -199,12 +245,17 @@ while True:
 
 			    		except FileNotFoundError:
 
+			    			# If the file requested by client is not there is server
+			    			# Sserver will send UNSUCCESSFUL reply  to server
+
 			    			print("File not found")
 
 			    			clientsocket.send('Not found'.encode('ascii'))
 
+			    			# SERVICE DONE reply
 			    			reply = [file,"UNSUCCESSFUL"]
 
+			    			#Encrypting the SERVICE DONE message
 			    			encrypted_reply = []
 
 			    			for item in reply:
@@ -213,25 +264,32 @@ while True:
 
 			    			data = pickle.dumps(encrypted_reply)
 
+			    			#Sending encrypted SERVICE DONE message to client
 			    			clientsocket.send(data)
 
 			    			break
 		    	else:
 
+		    		# IF the password sent by client for authentication is incorrect
+		    		# server will send UNSUCCESSFUL AUTH_REPLY to client
 		    		status_msg = ceaser_cipher_encrypt("UNSUCCESSFUL", KB_A)
 
 		    		clientsocket.send(status_msg.encode('ascii'))
 
+		#Waiting for client request to continue to use server
 		recv_conn = clientsocket.recv(1024)
 
 		conn = recv_conn.decode('utf8')
 
 		print("status : ",conn)
 
+		# If client wishes to use server, continue
 		if conn == 'y':
 
 			continue
 
+		# Else release lock of client and break
+		
 		else:
 
 			print_lock.release()
